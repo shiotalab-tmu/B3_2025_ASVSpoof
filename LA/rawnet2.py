@@ -121,14 +121,11 @@ if __name__ == "__main__":
         with open(output_path, 'w') as out_f:
             for i, audio_path in enumerate(audio_files, 1):
                 try:
-                    print(f"DEBUG: About to process file {i}/{len(audio_files)}: {audio_path}")
                     score = model.predict(audio_path)
                     out_f.write(f"{audio_path} {score:.6f}\n")
                     print(f"[{i}/{len(audio_files)}] {audio_path}: {score:.6f}")
                 except Exception as e:
-                    import traceback
-                    print(f"[{i}/{len(audio_files)}] Error processing {audio_path}:", file=sys.stderr)
-                    traceback.print_exc()
+                    print(f"[{i}/{len(audio_files)}] Error processing {audio_path}: {e}", file=sys.stderr)
 
         print(f"\nScores written to {output_path}")
 
