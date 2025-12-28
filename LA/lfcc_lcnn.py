@@ -38,10 +38,12 @@ class LFCC_LCNN(BaseASVModel):
         Returns:
             score: スコア（正の値ならbonafide、負の値ならspoof）
         """
-        # 一時ファイルリストを作成（絶対パスに変換）
+        # 一時ファイルリストを作成
+        # ベースラインシステムはファイル名のみ（パスと拡張子なし）を期待
         absolute_audio_path = Path(audio_path).absolute()
+        filename_no_ext = absolute_audio_path.stem
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write(str(absolute_audio_path) + '\n')
+            f.write(filename_no_ext + '\n')
             temp_list = f.name
 
         try:
