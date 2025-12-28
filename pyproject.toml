@@ -20,3 +20,7 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["LA", "PA", "common", "common.*"]
+exclude = ["logs", "ASVSpoof2021_baseline_system", "GMM_training"]
