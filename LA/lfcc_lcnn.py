@@ -99,7 +99,8 @@ optional_argument = ['']
                     str(main_py_relative),
                     '--inference',
                     '--trained-model', str(Path(self.model_path).absolute()),
-                    '--module-config', temp_config_name
+                    '--module-config', temp_config_name,
+                    '--model-forward-with-file-name'
                 ],
                 capture_output=True,
                 text=True,
