@@ -44,6 +44,31 @@ class LFCC_LCNN(BaseASVModel):
             f.write(str(absolute_audio_path) + '\n')
             temp_list = f.name
 
+        # 一時的なconfigファイルを作成
+        temp_config_content = f'''
+test_set_name = "temp_inference"
+test_list = "{temp_list}"
+test_input_dirs = ["{absolute_audio_path.parent}"]
+test_output_dirs = []
+wav_samp_rate = 16000
+truncate_seq = None
+minimum_len = None
+input_dirs = ["{absolute_audio_path.parent}"]
+input_dims = [1]
+input_exts = ["{absolute_audio_path.suffix}"]
+input_reso = [1]
+input_norm = [False]
+output_dirs = []
+output_dims = [1]
+output_exts = ['.bin']
+output_reso = [1]
+output_norm = [False]
+optional_argument = ['']
+'''
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(temp_config_content)
+            temp_config = f.name
+
         try:
             # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
             baseline_main_abs = self.baseline_main.absolute()
@@ -70,7 +95,7 @@ class LFCC_LCNN(BaseASVModel):
                     str(main_py_relative),
                     '--inference',
                     '--trained-model', str(Path(self.model_path).absolute()),
-                    '--test-list', str(Path(temp_list).absolute())
+                    '--module-config', str(Path(temp_config).absolute())
                 ],
                 capture_output=True,
                 text=True,
@@ -98,6 +123,7 @@ class LFCC_LCNN(BaseASVModel):
         finally:
             # 一時ファイルを削除
             Path(temp_list).unlink(missing_ok=True)
+            Path(temp_config).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
