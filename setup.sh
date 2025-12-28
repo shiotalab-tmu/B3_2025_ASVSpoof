@@ -59,14 +59,6 @@ else
     echo "    Error: Failed to download RawNet2 DF model"
 fi
 
-# /home/ayu内の既存GMMモデルを検索してコピー
-echo "Searching for existing GMM models in /home/ayu..."
-find /home/ayu -name "*gmm*asvspoof*.pkl" 2>/dev/null | while read -r pkl_file; do
-    echo "  Found: $pkl_file"
-    filename=$(basename "$pkl_file")
-    cp "$pkl_file" GMM_training/trained_models/ 2>/dev/null && echo "  Copied to GMM_training/trained_models/$filename"
-done
-
 # CQCC/LFCC特徴量抽出コードをコピー
 echo "Copying feature extraction code..."
 cp -r ASVSpoof2021_baseline_system/LA/Baseline-CQCC-GMM/python/CQCC common/feature_extraction/ 2>/dev/null || echo "  Note: CQCC code not found"
@@ -82,9 +74,8 @@ cp ASVSpoof2021_baseline_system/LA/Baseline-LFCC-GMM/python/asvspoof2021_baselin
 echo ""
 echo "=== Setup Notes ==="
 echo "1. GMM models (CQCC-GMM, LFCC-GMM):"
-echo "   - If not found in /home/ayu, you need to train them"
-echo "   - Training scripts are in GMM_training/ directory"
-echo "   - Requires ASVspoof2019 LA/PA training datasets in /home/audio/"
+echo "   - Pretrained GMM models (.pkl files) should be provided separately"
+echo "   - Place them in the appropriate pretrained directories (LA/pretrained/, PA/pretrained/)"
 echo "2. RawNet2: Using DF model for both LA and PA"
 echo "   - Model structure is identical across tracks"
 echo "   - Performance may be suboptimal but functional"
