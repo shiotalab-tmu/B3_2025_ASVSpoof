@@ -81,3 +81,33 @@ class CQCC_GMM(BaseASVModel):
         score = score_bona - score_spoof
 
         return float(score)
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) < 2:
+        print("Usage: uv run python PA/cqcc_gmm.py <audio_file_path>")
+        print("Example: uv run python PA/cqcc_gmm.py /home/audio/sample.wav")
+        sys.exit(1)
+
+    audio_path = sys.argv[1]
+    model_path = "PA/pretrained/cqcc_gmm_model.pkl"
+
+    try:
+        print(f"Loading CQCC-GMM model from {model_path}...")
+        model = CQCC_GMM(model_path, track="PA")
+
+        print(f"Processing audio: {audio_path}")
+        score = model.predict(audio_path)
+
+        print(f"\n=== Results ===")
+        print(f"Audio: {audio_path}")
+        print(f"Score: {score:.6f}")
+        print(f"Result: {'Bonafide' if score > 0 else 'Spoof'}")
+    except FileNotFoundError as e:
+        print(f"Error: File not found - {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)

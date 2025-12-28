@@ -25,6 +25,42 @@ bash setup.sh
 
 **注意**: GMM系モデル（CQCC-GMM, LFCC-GMM）の学習済みモデル（.pklファイル）は別途提供されます。
 
+## クイックスタート
+
+各モデルファイルを直接実行できます：
+
+### LAトラック
+
+```bash
+# RawNet2
+uv run python LA/rawnet2.py /path/to/audio.flac
+
+# LFCC-LCNN
+uv run python LA/lfcc_lcnn.py /path/to/audio.flac
+
+# LFCC-GMM
+uv run python LA/lfcc_gmm.py /path/to/audio.flac
+
+# CQCC-GMM
+uv run python LA/cqcc_gmm.py /path/to/audio.flac
+```
+
+### PAトラック
+
+```bash
+# RawNet2
+uv run python PA/rawnet2.py /path/to/audio.wav
+
+# LFCC-LCNN
+uv run python PA/lfcc_lcnn.py /path/to/audio.wav
+
+# LFCC-GMM
+uv run python PA/lfcc_gmm.py /path/to/audio.wav
+
+# CQCC-GMM
+uv run python PA/cqcc_gmm.py /path/to/audio.wav
+```
+
 ## 使い方
 
 ### LA（Logical Access）トラック
