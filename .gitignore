@@ -34,7 +34,6 @@ env/
 
 # UV関連
 .uv/
-uv.lock
 
 # IDEs
 .vscode/
