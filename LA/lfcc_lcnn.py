@@ -1,23 +1,16 @@
 """LFCC-LCNN model for LA track"""
 
 import sys
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Union
-import torch
-import numpy as np
 
-# 既存のLFCC-LCNNベースラインをインポートパスに追加
-baseline_path = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / "LA" / "Baseline-LFCC-LCNN"
-sys.path.insert(0, str(baseline_path))
-sys.path.insert(0, str(baseline_path / "project" / "baseline_LA"))
-
-from model import Model  # noqa: E402
 from common.base_model import BaseASVModel  # noqa: E402
-from common.audio_utils import load_audio  # noqa: E402
 
 
 class LFCC_LCNN(BaseASVModel):
-    """LFCC-LCNN ASV model"""
+    """LFCC-LCNN ASV model (uses baseline main.py via subprocess)"""
 
     def __init__(self, model_path: Union[str, Path], track: str = "LA"):
         """
@@ -25,37 +18,15 @@ class LFCC_LCNN(BaseASVModel):
             model_path: pretrained model path (.pt)
             track: 'LA' or 'PA'
         """
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = None
-
+        self.baseline_main = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / track / "Baseline-LFCC-LCNN" / "project" / "baseline_LA" / "main.py"
         super().__init__(model_path, track)
 
     def load_model(self):
-        """モデルをロード"""
-        # モデルを初期化（入力次元と出力次元は推論時には不要だが、ダミーで設定）
-        # 実際にはモデルは音声ファイルパスから自動的に特徴抽出を行う
-        self.model = Model(
-            in_dim=1,  # ダミー（実際には使用されない）
-            out_dim=1,  # ダミー
-            args=None,
-            prj_conf=type('obj', (object,), {'optional_argument': ['']})(),
-            mean_std=None
-        )
-
-        # Checkpointをロード
-        checkpoint = torch.load(str(self.model_path), map_location=self.device)
-
-        # 2種類のチェックポイント形式に対応
-        if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-            self.model.load_state_dict(checkpoint['state_dict'])
-        else:
-            self.model.load_state_dict(checkpoint)
-
-        self.model = self.model.to(self.device)
-        self.model.eval()
-
-        print(f"LFCC-LCNN model loaded for {self.track} track")
-        print(f"Device: {self.device}")
+        """モデルをロード（サブプロセス方式では不要）"""
+        if not self.baseline_main.exists():
+            raise FileNotFoundError(f"Baseline main.py not found: {self.baseline_main}")
+        print(f"LFCC-LCNN model ready for {self.track} track")
+        print(f"Using baseline script: {self.baseline_main}")
 
     def predict(self, audio_path: Union[str, Path]) -> float:
         """
@@ -67,50 +38,78 @@ class LFCC_LCNN(BaseASVModel):
         Returns:
             score: スコア（正の値ならbonafide、負の値ならspoof）
         """
-        # 音声を読み込み（16kHz）
-        audio = load_audio(audio_path, target_sr=16000)
+        # 一時ファイルリストを作成
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write(str(audio_path) + '\n')
+            temp_list = f.name
 
-        # Tensorに変換 (1, n_samples)
-        audio_tensor = torch.FloatTensor(audio).unsqueeze(0).to(self.device)
+        try:
+            # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
+            baseline_dir = self.baseline_main.parent.parent.parent
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(self.baseline_main),
+                    '--inference',
+                    '--trained-model', str(Path(self.model_path).absolute()),
+                    '--test-list', str(Path(temp_list).absolute())
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=str(baseline_dir)
+            )
 
-        # 推論
-        with torch.no_grad():
-            # fileinfoは "info_id,seq_name,seg_idx,length,start_pos" 形式を期待
-            # info_id=0, seq_name=audio_path, seg_idx=0, length=audio_length, start_pos=0
-            audio_length = len(audio)
-            fileinfo = [f"0,{str(audio_path)},0,{audio_length},0"]
-            output = self.model(audio_tensor, fileinfo)
+            # 標準出力から "Output, filename, label, score" をパース
+            for line in result.stdout.splitlines():
+                if line.startswith('Output,'):
+                    parts = line.split(',')
+                    score = float(parts[3].strip())
+                    return score
 
-            # スコアを取得
-            if isinstance(output, torch.Tensor):
-                score = output.item() if output.numel() == 1 else output[0].item()
-            else:
-                score = float(output)
+            raise ValueError("No output line found in baseline script output")
 
-        return score
+        finally:
+            # 一時ファイルを削除
+            Path(temp_list).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        audio_path = "ymgt.wav"
-        print(f"No audio path specified, using default: {audio_path}")
-    else:
-        audio_path = sys.argv[1]
+    if len(sys.argv) < 3:
+        print("Usage: uv run python LA/lfcc_lcnn.py <file_list.txt> <output_scores.txt>")
+        print("  file_list.txt: Text file containing audio file paths (one per line)")
+        print("  output_scores.txt: Output file for scores")
+        sys.exit(1)
+
+    file_list_path = sys.argv[1]
+    output_path = sys.argv[2]
     model_path = "LA/pretrained/trained_network.pt"
 
     try:
+        # Load model
         print(f"Loading LFCC-LCNN model from {model_path}...")
         model = LFCC_LCNN(model_path, track="LA")
 
-        print(f"Processing audio: {audio_path}")
-        score = model.predict(audio_path)
+        # Read file list
+        with open(file_list_path, 'r') as f:
+            audio_files = [line.strip() for line in f if line.strip()]
 
-        print(f"\n=== Results ===")
-        print(f"Audio: {audio_path}")
-        print(f"Score: {score:.6f}")
-        print(f"Result: {'Bonafide' if score > 0 else 'Spoof'}")
+        print(f"Processing {len(audio_files)} files...")
+
+        # Process each file and write scores
+        with open(output_path, 'w') as out_f:
+            for i, audio_path in enumerate(audio_files, 1):
+                try:
+                    score = model.predict(audio_path)
+                    out_f.write(f"{audio_path} {score:.6f}\n")
+                    print(f"[{i}/{len(audio_files)}] {audio_path}: {score:.6f}")
+                except Exception as e:
+                    print(f"[{i}/{len(audio_files)}] Error processing {audio_path}: {e}", file=sys.stderr)
+
+        print(f"\nScores written to {output_path}")
+
     except FileNotFoundError as e:
         print(f"Error: File not found - {e}", file=sys.stderr)
         sys.exit(1)
