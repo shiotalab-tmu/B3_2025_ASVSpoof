@@ -46,7 +46,7 @@ class LFCC_LCNN(BaseASVModel):
 
         try:
             # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
-            baseline_dir = self.baseline_main.parent.parent.parent
+            baseline_dir = self.baseline_main.parent.parent.parent.absolute()
             main_py_relative = self.baseline_main.relative_to(baseline_dir)
 
             # PYTHONPATHにベースラインディレクトリを追加
