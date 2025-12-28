@@ -47,6 +47,15 @@ class LFCC_LCNN(BaseASVModel):
             # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
             baseline_dir = self.baseline_main.parent.parent.parent
             main_py_relative = self.baseline_main.relative_to(baseline_dir)
+
+            # PYTHONPATHにベースラインディレクトリを追加
+            import os
+            env = os.environ.copy()
+            pythonpath = str(baseline_dir)
+            if 'PYTHONPATH' in env:
+                pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
+            env['PYTHONPATH'] = pythonpath
+
             result = subprocess.run(
                 [
                     sys.executable,
@@ -58,7 +67,8 @@ class LFCC_LCNN(BaseASVModel):
                 capture_output=True,
                 text=True,
                 check=True,
-                cwd=str(baseline_dir)
+                cwd=str(baseline_dir),
+                env=env
             )
 
             # 標準出力から "Output, filename, label, score" をパース
