@@ -66,10 +66,17 @@ class LFCC_LCNN(BaseASVModel):
                 ],
                 capture_output=True,
                 text=True,
-                check=True,
+                check=False,
                 cwd=str(baseline_dir),
                 env=env
             )
+
+            # エラーチェック
+            if result.returncode != 0:
+                error_msg = f"Baseline script failed with exit code {result.returncode}\n"
+                error_msg += f"STDOUT:\n{result.stdout}\n"
+                error_msg += f"STDERR:\n{result.stderr}"
+                raise RuntimeError(error_msg)
 
             # 標準出力から "Output, filename, label, score" をパース
             for line in result.stdout.splitlines():
