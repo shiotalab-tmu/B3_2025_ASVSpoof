@@ -75,11 +75,10 @@ class LFCC_LCNN(BaseASVModel):
 
         # 推論
         with torch.no_grad():
-            # モデルにinferenceメソッドがあればそれを使用、なければforward
-            if hasattr(self.model, 'inference'):
-                output = self.model.inference(audio_tensor, [str(audio_path)])
-            else:
-                output = self.model(audio_tensor, [str(audio_path)])
+            # fileinfoは "filepath,label" 形式を期待
+            # ダミーラベルとしてbonafideを使用
+            fileinfo = [f"{str(audio_path)},bonafide"]
+            output = self.model(audio_tensor, fileinfo)
 
             # スコアを取得
             if isinstance(output, torch.Tensor):
