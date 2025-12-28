@@ -46,10 +46,11 @@ class LFCC_LCNN(BaseASVModel):
         try:
             # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
             baseline_dir = self.baseline_main.parent.parent.parent
+            main_py_relative = self.baseline_main.relative_to(baseline_dir)
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(self.baseline_main),
+                    str(main_py_relative),
                     '--inference',
                     '--trained-model', str(Path(self.model_path).absolute()),
                     '--test-list', str(Path(temp_list).absolute())
