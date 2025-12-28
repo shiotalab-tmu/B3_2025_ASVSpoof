@@ -1,0 +1,93 @@
+#!/bin/bash
+
+echo "=== ASVSpoof2021 Baseline Inference System Setup ==="
+
+# ASVSpoof2021ベースラインシステムをclone
+if [ ! -d "ASVSpoof2021_baseline_system" ]; then
+    echo "Cloning ASVspoof2021 baseline repository..."
+    git clone https://github.com/asvspoof-challenge/2021.git ASVSpoof2021_baseline_system
+    echo "Repository cloned successfully."
+else
+    echo "ASVSpoof2021_baseline_system already exists. Skipping clone."
+fi
+
+# UVで環境作成とパッケージインストール
+echo "Creating Python environment with UV..."
+uv venv
+source .venv/bin/activate
+
+# プロジェクトの依存関係をインストール
+echo "Installing project dependencies..."
+uv add torch torchaudio numpy scipy scikit-learn soundfile librosa pandas h5py pyyaml "numba==0.48.0"
+
+# spafe等のGMM用追加パッケージをインストール
+echo "Installing additional dependencies for GMM..."
+uv add spafe matplotlib samplerate
+
+# ディレクトリ作成
+echo "Creating directory structure..."
+mkdir -p LA/pretrained PA/pretrained logs/agent_history
+mkdir -p common/feature_extraction
+mkdir -p GMM_training/trained_models
+
+# Pretrainedモデルダウンロード
+echo "Downloading pretrained models..."
+
+# LFCC-LCNN LA
+echo "  - Downloading LFCC-LCNN LA model..."
+wget -q https://www.asvspoof.org/asvspoof2021/pre_trained_LA_LFCC-LCNN.zip -O temp_la_lcnn.zip
+unzip -q temp_la_lcnn.zip -d LA/pretrained/
+rm temp_la_lcnn.zip
+
+# LFCC-LCNN PA
+echo "  - Downloading LFCC-LCNN PA model..."
+wget -q https://www.asvspoof.org/asvspoof2021/pre_trained_PA_LFCC-LCNN.zip -O temp_pa_lcnn.zip
+unzip -q temp_pa_lcnn.zip -d PA/pretrained/
+rm temp_pa_lcnn.zip
+
+# RawNet2 DF（LA/PAで使い回す）
+echo "  - Downloading RawNet2 DF model (will be used for LA/PA)..."
+wget -q https://www.asvspoof.org/asvspoof2021/pre_trained_DF_RawNet2.zip -O temp_df_rawnet.zip
+if [ -f temp_df_rawnet.zip ]; then
+    unzip -q temp_df_rawnet.zip
+    # LA/PA両方にコピー
+    cp pre_trained_DF_model.pth LA/pretrained/rawnet2_model.pth
+    cp pre_trained_DF_model.pth PA/pretrained/rawnet2_model.pth
+    rm temp_df_rawnet.zip pre_trained_DF_model.pth
+    echo "    RawNet2 DF model downloaded and copied to LA/PA directories"
+else
+    echo "    Error: Failed to download RawNet2 DF model"
+fi
+
+# /home/ayu内の既存GMMモデルを検索してコピー
+echo "Searching for existing GMM models in /home/ayu..."
+find /home/ayu -name "*gmm*asvspoof*.pkl" 2>/dev/null | while read -r pkl_file; do
+    echo "  Found: $pkl_file"
+    filename=$(basename "$pkl_file")
+    cp "$pkl_file" GMM_training/trained_models/ 2>/dev/null && echo "  Copied to GMM_training/trained_models/$filename"
+done
+
+# CQCC/LFCC特徴量抽出コードをコピー
+echo "Copying feature extraction code..."
+cp -r ASVSpoof2021_baseline_system/LA/Baseline-CQCC-GMM/python/CQCC common/feature_extraction/ 2>/dev/null || echo "  Note: CQCC code not found"
+cp ASVSpoof2021_baseline_system/LA/Baseline-LFCC-GMM/python/LFCC_pipeline.py common/feature_extraction/ 2>/dev/null || echo "  Note: LFCC code not found"
+cp ASVSpoof2021_baseline_system/LA/Baseline-CQCC-GMM/python/gmm.py common/ 2>/dev/null || echo "  Note: gmm.py not found"
+cp ASVSpoof2021_baseline_system/LA/Baseline-LFCC-GMM/python/gmm.py common/ 2>/dev/null || echo "  Note: gmm.py not found (LFCC)"
+
+# GMM学習スクリプトをコピー
+echo "Setting up GMM training scripts..."
+cp ASVSpoof2021_baseline_system/LA/Baseline-CQCC-GMM/python/asvspoof2021_baseline.py GMM_training/train_cqcc_gmm.py 2>/dev/null
+cp ASVSpoof2021_baseline_system/LA/Baseline-LFCC-GMM/python/asvspoof2021_baseline.py GMM_training/train_lfcc_gmm.py 2>/dev/null
+
+echo ""
+echo "=== Setup Notes ==="
+echo "1. GMM models (CQCC-GMM, LFCC-GMM):"
+echo "   - If not found in /home/ayu, you need to train them"
+echo "   - Training scripts are in GMM_training/ directory"
+echo "   - Requires ASVspoof2019 LA/PA training datasets in /home/audio/"
+echo "2. RawNet2: Using DF model for both LA and PA"
+echo "   - Model structure is identical across tracks"
+echo "   - Performance may be suboptimal but functional"
+echo "3. See README.md for detailed usage instructions"
+echo ""
+echo "Setup complete! Run 'source .venv/bin/activate' to activate the environment."
