@@ -18,29 +18,30 @@ bash setup.sh
 ```
 
 このスクリプトは以下を実行します：
-- UVでPython環境を作成
-- 必要なパッケージをインストール
+- ASVSpoof2021ベースラインリポジトリをclone
+- UVで依存関係をインストール（`uv sync`）
 - Pretrained modelを自動ダウンロード（LFCC-LCNN, RawNet2）
-- `/home/ayu`内の既存GMMモデルを検索・コピー
-- 特徴抽出コードと学習スクリプトをセットアップ
+- 特徴抽出コードをセットアップ
 
-### 2. 環境アクティベート
-
-```bash
-source .venv/bin/activate
-```
+**注意**: GMM系モデル（CQCC-GMM, LFCC-GMM）の学習済みモデル（.pklファイル）は別途提供されます。
 
 ## 使い方
 
 ### LA（Logical Access）トラック
 
 ```python
+# example_la.py
 from LA.rawnet2 import RawNet2
 
 # RawNet2で推論
 model = RawNet2("LA/pretrained/rawnet2_model.pth", track="LA")
 score = model.predict("/path/to/audio.flac")
 print(f"Score: {score:.4f}")  # 正ならbonafide、負ならspoof
+```
+
+実行：
+```bash
+uv run python example_la.py
 ```
 
 ### PA（Physical Access）トラック
