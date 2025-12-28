@@ -87,11 +87,10 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: uv run python LA/cqcc_gmm.py <audio_file_path>")
-        print("Example: uv run python LA/cqcc_gmm.py /home/audio/sample.flac")
-        sys.exit(1)
-
-    audio_path = sys.argv[1]
+        audio_path = "ymgt.wav"
+        print(f"No audio path specified, using default: {audio_path}")
+    else:
+        audio_path = sys.argv[1]
     model_path = "LA/pretrained/cqcc_gmm_model.pkl"
 
     try:

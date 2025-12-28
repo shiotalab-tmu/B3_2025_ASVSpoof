@@ -95,11 +95,11 @@ class RawNet2(BaseASVModel):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: uv run python LA/rawnet2.py <audio_file_path>")
-        print("Example: uv run python LA/rawnet2.py /home/audio/sample.flac")
-        sys.exit(1)
+        audio_path = "ymgt.wav"
+        print(f"No audio path specified, using default: {audio_path}")
+    else:
+        audio_path = sys.argv[1]
 
-    audio_path = sys.argv[1]
     model_path = "LA/pretrained/rawnet2_model.pth"
 
     try:
