@@ -11,18 +11,9 @@ else
     echo "ASVSpoof2021_baseline_system already exists. Skipping clone."
 fi
 
-# UVで環境作成とパッケージインストール
-echo "Creating Python environment with UV..."
-uv venv
-source .venv/bin/activate
-
-# プロジェクトの依存関係をインストール
-echo "Installing project dependencies..."
-uv add torch torchaudio numpy scipy scikit-learn soundfile librosa pandas h5py pyyaml "numba==0.48.0"
-
-# spafe等のGMM用追加パッケージをインストール
-echo "Installing additional dependencies for GMM..."
-uv add spafe matplotlib samplerate
+# UVで依存関係をインストール
+echo "Installing dependencies with UV..."
+uv sync
 
 # ディレクトリ作成
 echo "Creating directory structure..."
@@ -81,4 +72,4 @@ echo "   - Model structure is identical across tracks"
 echo "   - Performance may be suboptimal but functional"
 echo "3. See README.md for detailed usage instructions"
 echo ""
-echo "Setup complete! Run 'source .venv/bin/activate' to activate the environment."
+echo "Setup complete! Use 'uv run python your_script.py' to run scripts."
