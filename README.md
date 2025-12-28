@@ -27,39 +27,62 @@ bash setup.sh
 
 ## クイックスタート
 
-各モデルファイルを直接実行できます：
+各モデルファイルでバッチ処理が可能です。音声ファイルリストを作成し、スコアをファイルに出力します。
 
-### LAトラック
+### 1. ファイルリストの作成
+
+```bash
+# file_list.txt を作成（1行に1ファイルパス）
+cat > file_list.txt <<EOF
+/path/to/audio1.flac
+/path/to/audio2.flac
+/path/to/audio3.flac
+EOF
+```
+
+### 2. LAトラックでの推論
 
 ```bash
 # RawNet2
-uv run python LA/rawnet2.py /path/to/audio.flac
+uv run python LA/rawnet2.py file_list.txt scores_rawnet2.txt
 
 # LFCC-LCNN
-uv run python LA/lfcc_lcnn.py /path/to/audio.flac
+uv run python LA/lfcc_lcnn.py file_list.txt scores_lfcc_lcnn.txt
 
 # LFCC-GMM
-uv run python LA/lfcc_gmm.py /path/to/audio.flac
+uv run python LA/lfcc_gmm.py file_list.txt scores_lfcc_gmm.txt
 
 # CQCC-GMM
-uv run python LA/cqcc_gmm.py /path/to/audio.flac
+uv run python LA/cqcc_gmm.py file_list.txt scores_cqcc_gmm.txt
 ```
 
-### PAトラック
+### 3. PAトラックでの推論
 
 ```bash
 # RawNet2
-uv run python PA/rawnet2.py /path/to/audio.wav
+uv run python PA/rawnet2.py file_list.txt scores_rawnet2.txt
 
 # LFCC-LCNN
-uv run python PA/lfcc_lcnn.py /path/to/audio.wav
+uv run python PA/lfcc_lcnn.py file_list.txt scores_lfcc_lcnn.txt
 
 # LFCC-GMM
-uv run python PA/lfcc_gmm.py /path/to/audio.wav
+uv run python PA/lfcc_gmm.py file_list.txt scores_lfcc_gmm.txt
 
 # CQCC-GMM
-uv run python PA/cqcc_gmm.py /path/to/audio.wav
+uv run python PA/cqcc_gmm.py file_list.txt scores_cqcc_gmm.txt
 ```
+
+### 4. 出力ファイル形式
+
+スコアファイル（例: `scores_rawnet2.txt`）の内容：
+
+```
+/path/to/audio1.flac 2.345678
+/path/to/audio2.flac -1.234567
+/path/to/audio3.flac 0.987654
+```
+
+各行は `<ファイルパス> <スコア>` の形式です。
 
 ## 使い方
 

@@ -127,24 +127,39 @@ class LFCC_GMM(BaseASVModel):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        audio_path = "ymgt.wav"
-        print(f"No audio path specified, using default: {audio_path}")
-    else:
-        audio_path = sys.argv[1]
+    if len(sys.argv) < 3:
+        print("Usage: uv run python LA/lfcc_gmm.py <file_list.txt> <output_scores.txt>")
+        print("  file_list.txt: Text file containing audio file paths (one per line)")
+        print("  output_scores.txt: Output file for scores")
+        sys.exit(1)
+
+    file_list_path = sys.argv[1]
+    output_path = sys.argv[2]
     model_path = "LA/pretrained/lfcc_gmm_model.pkl"
 
     try:
+        # Load model
         print(f"Loading LFCC-GMM model from {model_path}...")
         model = LFCC_GMM(model_path, track="LA")
 
-        print(f"Processing audio: {audio_path}")
-        score = model.predict(audio_path)
+        # Read file list
+        with open(file_list_path, 'r') as f:
+            audio_files = [line.strip() for line in f if line.strip()]
 
-        print(f"\n=== Results ===")
-        print(f"Audio: {audio_path}")
-        print(f"Score: {score:.6f}")
-        print(f"Result: {'Bonafide' if score > 0 else 'Spoof'}")
+        print(f"Processing {len(audio_files)} files...")
+
+        # Process each file and write scores
+        with open(output_path, 'w') as out_f:
+            for i, audio_path in enumerate(audio_files, 1):
+                try:
+                    score = model.predict(audio_path)
+                    out_f.write(f"{audio_path} {score:.6f}\n")
+                    print(f"[{i}/{len(audio_files)}] {audio_path}: {score:.6f}")
+                except Exception as e:
+                    print(f"[{i}/{len(audio_files)}] Error processing {audio_path}: {e}", file=sys.stderr)
+
+        print(f"\nScores written to {output_path}")
+
     except FileNotFoundError as e:
         print(f"Error: File not found - {e}", file=sys.stderr)
         sys.exit(1)
