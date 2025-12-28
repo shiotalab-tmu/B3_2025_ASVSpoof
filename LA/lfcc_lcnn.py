@@ -87,12 +87,6 @@ optional_argument = ['']
                 pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
             env['PYTHONPATH'] = pythonpath
 
-            # デバッグ出力
-            print(f"DEBUG: baseline_dir = {baseline_dir}")
-            print(f"DEBUG: PYTHONPATH = {pythonpath}")
-            print(f"DEBUG: cwd = {baseline_dir}")
-            print(f"DEBUG: Command: {sys.executable} {main_py_relative}")
-
             result = subprocess.run(
                 [
                     sys.executable,
