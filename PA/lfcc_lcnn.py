@@ -75,9 +75,10 @@ class LFCC_LCNN(BaseASVModel):
 
         # 推論
         with torch.no_grad():
-            # fileinfoは "filepath,label" 形式を期待
-            # ダミーラベルとしてbonafideを使用
-            fileinfo = [f"{str(audio_path)},bonafide"]
+            # fileinfoは "info_id,seq_name,seg_idx,length,start_pos" 形式を期待
+            # info_id=0, seq_name=audio_path, seg_idx=0, length=audio_length, start_pos=0
+            audio_length = len(audio)
+            fileinfo = [f"0,{str(audio_path)},0,{audio_length},0"]
             output = self.model(audio_tensor, fileinfo)
 
             # スコアを取得
