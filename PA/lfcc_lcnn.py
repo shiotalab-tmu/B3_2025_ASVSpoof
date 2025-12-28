@@ -44,8 +44,18 @@ class LFCC_LCNN(BaseASVModel):
             f.write(str(absolute_audio_path) + '\n')
             temp_list = f.name
 
-        # 一時的なconfigファイルを作成
-        temp_config_content = f'''
+        try:
+            # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
+            baseline_main_abs = self.baseline_main.absolute()
+            baseline_dir = baseline_main_abs.parent.parent.parent
+            main_py_relative = baseline_main_abs.relative_to(baseline_dir)
+
+            # 一時的なconfigファイルをbaseline_dirに作成
+            import uuid
+            temp_config_name = f"temp_config_{uuid.uuid4().hex[:8]}"
+            temp_config_path = baseline_dir / f"{temp_config_name}.py"
+
+            temp_config_content = f'''
 test_set_name = "temp_inference"
 test_list = "{temp_list}"
 test_input_dirs = ["{absolute_audio_path.parent}"]
@@ -65,15 +75,7 @@ output_reso = [1]
 output_norm = [False]
 optional_argument = ['']
 '''
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-            f.write(temp_config_content)
-            temp_config = f.name
-
-        try:
-            # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
-            baseline_main_abs = self.baseline_main.absolute()
-            baseline_dir = baseline_main_abs.parent.parent.parent
-            main_py_relative = baseline_main_abs.relative_to(baseline_dir)
+            temp_config_path.write_text(temp_config_content)
 
             # PYTHONPATHにベースラインディレクトリを追加
             import os
@@ -89,7 +91,7 @@ optional_argument = ['']
                     str(main_py_relative),
                     '--inference',
                     '--trained-model', str(Path(self.model_path).absolute()),
-                    '--module-config', str(Path(temp_config).absolute())
+                    '--module-config', temp_config_name
                 ],
                 capture_output=True,
                 text=True,
@@ -117,7 +119,8 @@ optional_argument = ['']
         finally:
             # 一時ファイルを削除
             Path(temp_list).unlink(missing_ok=True)
-            Path(temp_config).unlink(missing_ok=True)
+            if 'temp_config_path' in locals():
+                temp_config_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
