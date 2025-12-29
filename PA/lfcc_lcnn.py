@@ -86,6 +86,8 @@ optional_argument = ['']
             if 'PYTHONPATH' in env:
                 pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
             env['PYTHONPATH'] = pythonpath
+            # Force CPU execution
+            env['CUDA_VISIBLE_DEVICES'] = ''
 
             result = subprocess.run(
                 [
@@ -94,7 +96,8 @@ optional_argument = ['']
                     '--inference',
                     '--trained-model', str(Path(self.model_path).absolute()),
                     '--module-config', temp_config_name,
-                    '--model-forward-with-file-name'
+                    '--model-forward-with-file-name',
+                    '--no-cuda'
                 ],
                 capture_output=True,
                 text=True,
