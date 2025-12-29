@@ -17,29 +17,21 @@
 bash setup.sh
 ```
 
-このスクリプトは以下を実行します：
-- ASVSpoof2021ベースラインリポジトリをclone
-- UVで依存関係をインストール（`uv sync`）
-- 特徴抽出コードをセットアップ
+## 使い方
 
-**全てのpre-trainedモデルはリポジトリに含まれています**（`LA/pretrained/`, `PA/pretrained/`）。
-
-## クイックスタート
-
-各モデルファイルでバッチ処理が可能です。音声ファイルリストを作成し、スコアをファイルに出力します。
+音声ファイルのリストを作成し，各モデルのプログラムに渡してください．
 
 ### 1. ファイルリストの作成
 
 ```bash
 # file_list.txt を作成（1行に1ファイルパス）
-cat > file_list.txt <<EOF
-/path/to/audio1.flac
-/path/to/audio2.flac
-/path/to/audio3.flac
-EOF
+/path/to/audio1.wav
+/path/to/audio2.wav
+/path/to/audio3.wav
+...
 ```
 
-### 2. LAトラックでの推論
+### 2. LAタスクでの推論
 
 ```bash
 # RawNet2
@@ -55,7 +47,7 @@ uv run python LA/lfcc_gmm.py file_list.txt LA_lfcc_gmm.txt
 uv run python LA/cqcc_gmm.py file_list.txt LA_cqcc_gmm.txt
 ```
 
-### 3. PAトラックでの推論
+### 3. PAタスクでの推論
 
 ```bash
 # RawNet2
@@ -76,9 +68,9 @@ uv run python PA/cqcc_gmm.py file_list.txt PA_cqcc_gmm.txt
 スコアファイル（例: `PA_rawnet2.txt`）の内容：
 
 ```
-/path/to/audio1.flac 2.345678
-/path/to/audio2.flac -1.234567
-/path/to/audio3.flac 0.987654
+/path/to/audio1.wav 2.345678
+/path/to/audio2.wav -1.234567
+/path/to/audio3.wav 0.987654
 ```
 
 各行は `<ファイルパス> <スコア>` の形式です。
