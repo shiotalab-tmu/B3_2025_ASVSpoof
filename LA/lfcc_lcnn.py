@@ -1,16 +1,21 @@
 """LFCC-LCNN model for LA track"""
 
 import sys
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Union
+import torch
+import numpy as np
+
+# 既存のLFCC-LCNNベースラインをインポートパスに追加
+baseline_path = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / "LA" / "Baseline-LFCC-LCNN"
+sys.path.insert(0, str(baseline_path))
 
 from common.base_model import BaseASVModel  # noqa: E402
+from common.audio_utils import load_audio  # noqa: E402
 
 
 class LFCC_LCNN(BaseASVModel):
-    """LFCC-LCNN ASV model (uses baseline main.py via subprocess)"""
+    """LFCC-LCNN ASV model (direct model loading)"""
 
     def __init__(self, model_path: Union[str, Path], track: str = "LA"):
         """
@@ -18,15 +23,44 @@ class LFCC_LCNN(BaseASVModel):
             model_path: pretrained model path (.pt)
             track: 'LA' or 'PA'
         """
-        self.baseline_main = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / track / "Baseline-LFCC-LCNN" / "project" / "baseline_LA" / "main.py"
+        self.device = 'cpu'  # Force CPU
+        self.model = None
         super().__init__(model_path, track)
 
     def load_model(self):
-        """モデルをロード（サブプロセス方式では不要）"""
-        if not self.baseline_main.exists():
-            raise FileNotFoundError(f"Baseline main.py not found: {self.baseline_main}")
-        print(f"LFCC-LCNN model ready for {self.track} track")
-        print(f"Using baseline script: {self.baseline_main}")
+        """モデルをロード"""
+        # baseline model.pyをインポート
+        import importlib.util
+        model_py_path = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / self.track / "Baseline-LFCC-LCNN" / "project" / f"baseline_{self.track}" / "model.py"
+
+        spec = importlib.util.spec_from_file_location("baseline_model", model_py_path)
+        baseline_model = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(baseline_model)
+
+        # ダミーのargsとprj_confを作成
+        class DummyArgs:
+            def __init__(self):
+                pass
+
+        class DummyConf:
+            def __init__(self):
+                self.optional_argument = ['']
+
+        args = DummyArgs()
+        prj_conf = DummyConf()
+
+        # モデルを初期化（in_dim=1, out_dim=1）
+        self.model = baseline_model.Model(in_dim=1, out_dim=1, args=args, prj_conf=prj_conf)
+
+        # Pretrainedモデルをロード（CPU強制）
+        checkpoint = torch.load(str(self.model_path), map_location='cpu')
+        self.model.load_state_dict(checkpoint)
+
+        self.model = self.model.to(self.device)
+        self.model.eval()
+
+        print(f"LFCC-LCNN model loaded for {self.track} track")
+        print(f"Device: {self.device}")
 
     def predict(self, audio_path: Union[str, Path]) -> float:
         """
@@ -38,95 +72,26 @@ class LFCC_LCNN(BaseASVModel):
         Returns:
             score: スコア（正の値ならbonafide、負の値ならspoof）
         """
-        # 一時ファイルリストを作成
-        # ベースラインシステムはファイル名のみ（パスと拡張子なし）を期待
-        absolute_audio_path = Path(audio_path).absolute()
-        filename_no_ext = absolute_audio_path.stem
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write(filename_no_ext + '\n')
-            temp_list = f.name
+        # 音声を読み込み（16kHz）
+        audio = load_audio(audio_path, target_sr=16000)
 
-        try:
-            # ベースラインのmain.pyを実行（cwdをベースラインディレクトリに設定）
-            baseline_main_abs = self.baseline_main.absolute()
-            baseline_dir = baseline_main_abs.parent.parent.parent
-            main_py_relative = baseline_main_abs.relative_to(baseline_dir)
+        # Tensorに変換 (batch, length, 1)
+        audio_tensor = torch.FloatTensor(audio).unsqueeze(0).unsqueeze(-1).to(self.device)
 
-            # 一時的なconfigファイルをbaseline_dirに作成
-            import uuid
-            temp_config_name = f"temp_config_{uuid.uuid4().hex[:8]}"
-            temp_config_path = baseline_dir / f"{temp_config_name}.py"
+        # ファイル名情報を作成（モデルが期待する形式）
+        filename = Path(audio_path).stem
+        # fileinfo format: "filename_length_0000"
+        fileinfo = [f"{filename}_{len(audio)}_0000"]
 
-            temp_config_content = f'''
-test_set_name = "temp_inference"
-test_list = "{temp_list}"
-test_input_dirs = ["{absolute_audio_path.parent}"]
-test_output_dirs = []
-wav_samp_rate = 16000
-truncate_seq = None
-minimum_len = None
-input_dirs = ["{absolute_audio_path.parent}"]
-input_dims = [1]
-input_exts = ["{absolute_audio_path.suffix}"]
-input_reso = [1]
-input_norm = [False]
-output_dirs = []
-output_dims = [1]
-output_exts = ['.bin']
-output_reso = [1]
-output_norm = [False]
-optional_argument = ['']
-'''
-            temp_config_path.write_text(temp_config_content)
+        # 推論
+        with torch.no_grad():
+            # Model.forward returns None during inference, but prints the score
+            # We need to capture the embedding instead
+            feature_vec = self.model._compute_embedding(audio_tensor, [len(audio)])
+            score = self.model._compute_score(feature_vec, inference=True)
 
-            # PYTHONPATHにベースラインディレクトリを追加
-            import os
-            env = os.environ.copy()
-            pythonpath = str(baseline_dir)
-            if 'PYTHONPATH' in env:
-                pythonpath = f"{pythonpath}:{env['PYTHONPATH']}"
-            env['PYTHONPATH'] = pythonpath
-            # Force CPU execution
-            env['CUDA_VISIBLE_DEVICES'] = ''
-
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(main_py_relative),
-                    '--inference',
-                    '--trained-model', str(Path(self.model_path).absolute()),
-                    '--module-config', temp_config_name,
-                    '--model-forward-with-file-name',
-                    '--no-cuda'
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-                cwd=str(baseline_dir),
-                env=env
-            )
-
-            # エラーチェック
-            if result.returncode != 0:
-                error_msg = f"Baseline script failed with exit code {result.returncode}\n"
-                error_msg += f"STDOUT:\n{result.stdout}\n"
-                error_msg += f"STDERR:\n{result.stderr}"
-                raise RuntimeError(error_msg)
-
-            # 標準出力から "Output, filename, label, score" をパース
-            for line in result.stdout.splitlines():
-                if line.startswith('Output,'):
-                    parts = line.split(',')
-                    score = float(parts[3].strip())
-                    return score
-
-            raise ValueError("No output line found in baseline script output")
-
-        finally:
-            # 一時ファイルを削除
-            Path(temp_list).unlink(missing_ok=True)
-            if 'temp_config_path' in locals():
-                temp_config_path.unlink(missing_ok=True)
+        # スコアの平均を返す（submodelsがある場合）
+        return float(score.mean().item())
 
 
 if __name__ == "__main__":
