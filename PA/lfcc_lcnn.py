@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from typing import Union
 import torch
-import numpy as np
 
 # 既存のLFCC-LCNNベースラインをインポートパスに追加
 baseline_path = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / "PA" / "Baseline-LFCC-LCNN"
@@ -77,11 +76,6 @@ class LFCC_LCNN(BaseASVModel):
 
         # Tensorに変換 (batch, length, 1)
         audio_tensor = torch.FloatTensor(audio).unsqueeze(0).unsqueeze(-1).to(self.device)
-
-        # ファイル名情報を作成（モデルが期待する形式）
-        filename = Path(audio_path).stem
-        # fileinfo format: "filename_length_0000"
-        fileinfo = [f"{filename}_{len(audio)}_0000"]
 
         # 推論
         with torch.no_grad():
