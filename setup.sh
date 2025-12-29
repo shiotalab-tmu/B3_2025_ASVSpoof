@@ -33,7 +33,7 @@ if ! wget https://www.asvspoof.org/asvspoof2021/pre_trained_LA_LFCC-LCNN.zip -O 
 fi
 unzip -o temp_la_lcnn.zip -d LA/pretrained/
 if [ -f LA/pretrained/la_trained_network.pt ]; then
-    mv LA/pretrained/la_trained_network.pt LA/pretrained/trained_network.pt
+    mv LA/pretrained/la_trained_network.pt LA/pretrained/LFCC_LCNN.pt
 fi
 rm temp_la_lcnn.zip
 
@@ -45,7 +45,7 @@ if ! wget https://www.asvspoof.org/asvspoof2021/pre_trained_PA_LFCC-LCNN.zip -O 
 fi
 unzip -o temp_pa_lcnn.zip -d PA/pretrained/
 if [ -f PA/pretrained/pa_trained_network.pt ]; then
-    mv PA/pretrained/pa_trained_network.pt PA/pretrained/trained_network.pt
+    mv PA/pretrained/pa_trained_network.pt PA/pretrained/LFCC_LCNN.pt
 fi
 rm temp_pa_lcnn.zip
 
@@ -57,8 +57,8 @@ if ! wget https://www.asvspoof.org/asvspoof2021/pre_trained_DF_RawNet2.zip -O te
 fi
 unzip -o temp_df_rawnet.zip
 # LA/PA両方にコピー
-cp pre_trained_DF_RawNet2.pth LA/pretrained/rawnet2_model.pth
-cp pre_trained_DF_RawNet2.pth PA/pretrained/rawnet2_model.pth
+cp pre_trained_DF_RawNet2.pth LA/pretrained/rawnet2.pth
+cp pre_trained_DF_RawNet2.pth PA/pretrained/rawnet2.pth
 rm temp_df_rawnet.zip pre_trained_DF_RawNet2.pth
 echo "    RawNet2 DF model downloaded and copied to LA/PA directories"
 

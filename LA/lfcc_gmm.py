@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     file_list_path = sys.argv[1]
     output_path = sys.argv[2]
-    model_path = "LA/pretrained/lfcc_gmm_model.pkl"
+    model_path = "LA/pretrained/LFCC_GMM.pkl"
 
     try:
         # Load model

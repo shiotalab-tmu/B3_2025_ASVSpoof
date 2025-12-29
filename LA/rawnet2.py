@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     file_list_path = sys.argv[1]
     output_path = sys.argv[2]
-    model_path = "LA/pretrained/rawnet2_model.pth"
+    model_path = "LA/pretrained/rawnet2.pth"
 
     try:
         # Load model
