@@ -1,5 +1,5 @@
 [project]
-name = "b3-asv-inference"
+name = "b3-asvspoof-inference"
 version = "0.1.0"
 description = "ASVSpoof2021 Baseline Inference System"
 requires-python = ">=3.8,<3.9"

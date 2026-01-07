@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "b3-asv-inference"
+name = "b3-asvspoof-inference"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
