@@ -62,6 +62,10 @@ class CQCC_GMM(BaseASVModel):
         self.gmm_bona._set_parameters(gmm_dict["bona"])
         self.gmm_spoof._set_parameters(gmm_dict["spoof"])
 
+        # n_componentsを手動で設定（_set_parametersでは更新されない）
+        self.gmm_bona.n_components = len(self.gmm_bona.weights_)
+        self.gmm_spoof.n_components = len(self.gmm_spoof.weights_)
+
         print(f"CQCC-GMM model loaded for {self.track} track")
         print(f"  Bonafide GMM components: {self.gmm_bona.n_components}")
         print(f"  Spoof GMM components: {self.gmm_spoof.n_components}")
