@@ -62,7 +62,7 @@ class RawNet2(BaseASVModel):
         self.model = self.model.to(self.device)
         self.model.eval()
 
-        print(f"RawNet2 model loaded for {self.track} track (using DF weights)")
+        print(f"RawNet2 model loaded for {self.track} track")
         print(f"Device: {self.device}")
 
     def predict(self, audio_path: Union[str, Path]) -> float:
