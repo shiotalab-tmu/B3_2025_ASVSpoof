@@ -93,8 +93,9 @@ class CQCC_GMM(BaseASVModel):
         )
 
         # スコア計算: log P(X|bonafide) - log P(X|spoof)
-        score_bona = self.gmm_bona.score(features.T)
-        score_spoof = self.gmm_spoof.score(features.T)
+        # extract_cqcc は (n_frames, n_features) を返すのでそのまま使用
+        score_bona = self.gmm_bona.score(features)
+        score_spoof = self.gmm_spoof.score(features)
         score = score_bona - score_spoof
 
         return float(score)
