@@ -77,7 +77,7 @@ uv run python PA/cqcc_gmm.py file_list.txt PA_cqcc_gmm.txt
 
 ## Pretrained Models
 
-全ての学習済みモデルはリポジトリに含まれています。
+学習済みモデルは `setup.sh` 実行時に自動的にダウンロードされます。
 
 ```bash
 # LAトラック
