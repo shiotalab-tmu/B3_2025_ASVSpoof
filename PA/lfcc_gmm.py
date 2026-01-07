@@ -108,9 +108,10 @@ class LFCC_GMM(BaseASVModel):
             score: スコア（正の値ならbonafide、負の値ならspoof）
         """
         # LFCC特徴抽出（デルタ付き）
+        # MATLAB baseline: no_coeff=19 → 19×3=57次元
         features = extract_lfcc_with_deltas(
             audio_path,
-            num_ceps=20,
+            num_ceps=19,
             order_deltas=2,
             low_freq=0,
             high_freq=4000

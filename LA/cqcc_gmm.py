@@ -8,11 +8,30 @@ import pickle
 from sklearn.mixture import GaussianMixture
 
 # 既存のCQCC-GMMベースラインをインポートパスに追加
-baseline_path = Path(__file__).parent.parent / "ASVSpoof2021_baseline_system" / "LA" / "Baseline-CQCC-GMM" / "python"
+baseline_path = (
+    Path(__file__).parent.parent
+    / "ASVSpoof2021_baseline_system"
+    / "LA"
+    / "Baseline-CQCC-GMM"
+    / "python"
+)
 sys.path.insert(0, str(baseline_path))
 
 from gmm import extract_cqcc  # noqa: E402
 from common.base_model import BaseASVModel  # noqa: E402
+
+
+def cqcc_deltas(x, hlen=3):
+    from numpy import tile, concatenate, arange
+    from scipy.signal import lfilter
+
+    win = list(range(hlen, -hlen - 1, -1))
+    norm = 2 * sum([i**2 for i in range(1, hlen + 1)])
+    xx_1 = tile(x[:, 0], (1, hlen)).reshape(hlen, -1).T
+    xx_2 = tile(x[:, -1], (1, hlen)).reshape(hlen, -1).T
+    xx = concatenate([xx_1, x, xx_2], axis=-1)
+    D = lfilter(win, 1, xx) / norm
+    return D[:, hlen * 2 :]
 
 
 class CQCC_GMM(BaseASVModel):
@@ -36,12 +55,12 @@ class CQCC_GMM(BaseASVModel):
             gmm_dict = pickle.load(f)
 
         # bonafideとspoofのGMMを初期化
-        self.gmm_bona = GaussianMixture(covariance_type='diag')
-        self.gmm_spoof = GaussianMixture(covariance_type='diag')
+        self.gmm_bona = GaussianMixture(covariance_type="diag")
+        self.gmm_spoof = GaussianMixture(covariance_type="diag")
 
         # パラメータをセット
-        self.gmm_bona._set_parameters(gmm_dict['bona'])
-        self.gmm_spoof._set_parameters(gmm_dict['spoof'])
+        self.gmm_bona._set_parameters(gmm_dict["bona"])
+        self.gmm_spoof._set_parameters(gmm_dict["spoof"])
 
         print(f"CQCC-GMM model loaded for {self.track} track")
         print(f"  Bonafide GMM components: {self.gmm_bona.n_components}")
@@ -64,20 +83,14 @@ class CQCC_GMM(BaseASVModel):
 
         # CQCC特徴抽出
         # extract_cqcc(sig, fs, fmin, fmax, B, cf, d)
-        # デフォルト: fmin=96, fmax=fs/2, B=12, cf=19, d=16
+        # MATLABに合わせたパラメータ: fmin=62.50, fmax=8000
         features = extract_cqcc(
-            sig=sig,
-            fs=fs,
-            fmin=96,
-            fmax=fs/2,
-            B=12,
-            cf=19,
-            d=16
+            sig=sig, fs=fs, fmin=62.50, fmax=8000, B=12, cf=19, d=16
         )
 
         # スコア計算: log P(X|bonafide) - log P(X|spoof)
-        score_bona = self.gmm_bona.score(features)
-        score_spoof = self.gmm_spoof.score(features)
+        score_bona = self.gmm_bona.score(features.T)
+        score_spoof = self.gmm_spoof.score(features.T)
         score = score_bona - score_spoof
 
         return float(score)
@@ -102,20 +115,23 @@ if __name__ == "__main__":
         model = CQCC_GMM(model_path, track="LA")
 
         # Read file list
-        with open(file_list_path, 'r') as f:
+        with open(file_list_path, "r") as f:
             audio_files = [line.strip() for line in f if line.strip()]
 
         print(f"Processing {len(audio_files)} files...")
 
         # Process each file and write scores
-        with open(output_path, 'w') as out_f:
+        with open(output_path, "w") as out_f:
             for i, audio_path in enumerate(audio_files, 1):
                 try:
                     score = model.predict(audio_path)
                     out_f.write(f"{audio_path} {score:.6f}\n")
                     print(f"[{i}/{len(audio_files)}] {audio_path}: {score:.6f}")
                 except Exception as e:
-                    print(f"[{i}/{len(audio_files)}] Error processing {audio_path}: {e}", file=sys.stderr)
+                    print(
+                        f"[{i}/{len(audio_files)}] Error processing {audio_path}: {e}",
+                        file=sys.stderr,
+                    )
 
         print(f"\nScores written to {output_path}")
 
